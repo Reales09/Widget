@@ -63,13 +63,20 @@ func getJson(completation: @escaping ([JsonData]) -> ()){
 //DISEÑO - VISTA
 struct vista: View {
     let entry : Provider.Entry
+    @Environment(\.widgetFamily) var family
+    
+    @ViewBuilder
     var body: some View{
-        VStack(alignment: .leading){
-            Text("Mi lista").font(.title).bold()
-            ForEach(entry.widgetData, id: \.id){ item in
-                Text(item.name).bold()
-                    Text(item.email)
-            }
+        switch family {
+        case .systemSmall:
+            Text("small")
+        case .systemMedium:
+            Text("Medium")
+            
+        case .systemExtraLarge:
+            Text("Extra large")
+        default:
+            Text("Large")
         }
     }
 }
@@ -82,6 +89,6 @@ struct HelloWidget: Widget {
             vista(entry: entry)
         }.description("Descripción del widget")
             .configurationDisplayName("Nombre widget")
-            .supportedFamilies([.systemLarge])
+            .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge])
     }
 }
