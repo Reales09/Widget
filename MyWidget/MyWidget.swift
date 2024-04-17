@@ -8,73 +8,80 @@
 import WidgetKit
 import SwiftUI
 
-struct Provider: TimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), emoji: "😀")
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date(), emoji: "😀")
-        completion(entry)
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        var entries: [SimpleEntry] = []
-
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, emoji: "😀")
-            entries.append(entry)
-        }
-
-        let timeline = Timeline(entries: entries, policy: .atEnd)
-        completion(timeline)
-    }
+// MODELO VAR
+struct Modelo : TimelineEntry {
+    var date: Date
+    var widgetData : [JsonData]
 }
 
-struct SimpleEntry: TimelineEntry {
-    let date: Date
-    let emoji: String
+struct JsonData: Decodable {
+    var id : Int
+    var name : String
+    var email: String
 }
 
-struct MyWidgetEntryView : View {
-    var entry: Provider.Entry
-
-    var body: some View {
-        VStack {
-            Text("Time:")
-            Text(entry.date, style: .time)
-
-            Text("Emoji:")
-            Text(entry.emoji)
+// PROVIDER
+struct Provider : TimelineProvider {
+    func placeholder(in context: Context) -> Modelo {
+        return Modelo(date: Date(), widgetData: Array(repeating: JsonData(id: 0, name: "", email: ""), count: 2))
+    }
+    
+    func getSnapshot(in context: Context, completion: @escaping (Modelo) -> Void) {
+        completion(Modelo(date: Date(), widgetData: Array(repeating: JsonData(id: 0, name: "", email: ""), count: 2)))
+    }
+    
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Modelo>) -> Void) {
+        getJson{(modelData) in
+            let data = Modelo(date: Date(), widgetData: modelData)
+            guard let update = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) else {return}
+                    let timeline = Timeline(entries: [data], policy: .after(update))
+            completion(timeline)
         }
     }
+    
+    typealias Entry = Modelo
+    
 }
 
-struct MyWidget: Widget {
-    let kind: String = "MyWidget"
+func getJson(completation: @escaping ([JsonData]) -> ()){
+    guard let url = URL(string: "https://jsonplaceholder.typicode.com/posts/1/comments") else { return }
+    
+    URLSession.shared.dataTask(with: url){data,_,_ in
+        guard let data = data else { return }
+        
+        do{
+            let json = try JSONDecoder().decode([JsonData].self, from: data)
+            DispatchQueue.main.async {
+                completation(json)
+            }
+        }catch let error as NSError {
+            print("fallo", error.localizedDescription)
+        }
+    }.resume()
+}
 
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            if #available(iOS 17.0, *) {
-                MyWidgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
-            } else {
-                MyWidgetEntryView(entry: entry)
-                    .padding()
-                    .background()
+//DISEÑO - VISTA
+struct vista: View {
+    let entry : Provider.Entry
+    var body: some View{
+        VStack(alignment: .leading){
+            Text("Mi lista").font(.title).bold()
+            ForEach(entry.widgetData, id: \.id){ item in
+                Text(item.name).bold()
+                    Text(item.email)
             }
         }
-        .configurationDisplayName("My Widget")
-        .description("This is an example widget.")
     }
 }
 
-#Preview(as: .systemSmall) {
-    MyWidget()
-} timeline: {
-    SimpleEntry(date: .now, emoji: "😀")
-    SimpleEntry(date: .now, emoji: "🤩")
+// CONFIGURACIÓN
+@main
+struct HelloWidget: Widget {
+    var body: some WidgetConfiguration{
+        StaticConfiguration(kind: "Widget", provider: Provider()){ entry in
+            vista(entry: entry)
+        }.description("Descripción del widget")
+            .configurationDisplayName("Nombre widget")
+            .supportedFamilies([.systemLarge])
+    }
 }
