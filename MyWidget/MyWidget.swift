@@ -69,14 +69,57 @@ struct vista: View {
     var body: some View{
         switch family {
         case .systemSmall:
-            Text("small")
+            VStack(alignment: .center){
+                Text("Mi lista")
+                    .font(.largeTitle)
+                    .foregroundColor(.white)
+                    .bold()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    
+                Spacer()
+                Text(String(entry.widgetData.count)).font(.custom("Arial", size: 80)).bold()
+                Spacer()
+            }
         case .systemMedium:
-            Text("Medium")
+            VStack(alignment: .center){
+                Text("Mi lista")
+                    .font(.largeTitle)
+                    .foregroundColor(.white)
+                    .bold()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.blue)
+                    
+                
+                Spacer()
+                VStack(alignment: .leading){
+                    Text(entry.widgetData[0].name).bold()
+                    Text(entry.widgetData[0].email)
+                    Text(entry.widgetData[1].name).bold()
+                    Text(entry.widgetData[1].email)
+                    
+                }.padding(.leading)
+                Spacer()
+            }
             
-        case .systemExtraLarge:
-            Text("Extra large")
         default:
-            Text("Large")
+            Text("Mi lista")
+                .font(.largeTitle)
+                .foregroundColor(.white)
+                .bold()
+                .frame(maxWidth: .infinity)
+                .background(Color.blue)
+                
+            
+            Spacer()
+            VStack(alignment: .leading){
+                ForEach(entry.widgetData, id: \.id){ item in
+                    Text(item.name).bold()
+                    Text(item.email)
+                }
+                
+            }.padding(.leading)
+            Spacer()
         }
     }
 }
